@@ -2,54 +2,373 @@
 <html lang="en">
 <head>
   <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="DocuMind — Upload documents and ask natural-language questions about their content, powered by RAG.">
-
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="DocuMind">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
   <title>DocuMind — RAG Document Q&A</title>
   <link rel="manifest" href="manifest.json">
-
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --indigo:       #3B5BDB;
+      --indigo-deep:  #2F4AC0;
+      --indigo-soft:  #E8EDFF;
+      --purple:       #7C5CFC;
+      --bg:           #F5F7FB;
+      --bg-blue:      #EEF2FF;
+      --paper:        #FFFFFF;
+      --ink:          #1E293B;
+      --ink-soft:     #64748B;
+      --line:         #E2E8F0;
+      --success:      #16A34A;
+      --error:        #DC2626;
+    }
+
     body {
-      margin: 0;
-      background-color: #1a1a2e;
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(180deg, #F8FAFF 0%, var(--bg) 55%, #F3F0FF 100%);
+      min-height: 100vh;
+      color: var(--ink);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* Atmosphere blobs */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 280px; height: 280px;
+      top: -120px; right: -60px;
+      background: rgba(59,91,219,0.08);
+    }
+    body::after {
+      width: 300px; height: 300px;
+      bottom: -100px; left: -80px;
+      background: rgba(124,92,252,0.07);
+    }
+
+    /* ── Header ── */
+    header {
+      position: relative; z-index: 10;
+      padding: 14px 20px 10px;
+    }
+    .header-inner {
+      max-width: 1120px;
+      margin: 0 auto;
       display: flex;
-      justify-content: center;
       align-items: center;
-      height: 100vh;
-      font-family: sans-serif;
-      color: #ffffff;
+      gap: 12px;
     }
-    #loading {
-      text-align: center;
+    .logo-btn {
+      display: flex; align-items: center; gap: 12px;
+      text-decoration: none; color: inherit;
+      border-radius: 12px;
+      padding: 4px;
     }
-    #loading h2 {
-      font-size: 1.5rem;
+    .logo-icon {
+      width: 40px; height: 40px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--indigo), var(--purple));
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-icon svg { width: 20px; height: 20px; fill: white; }
+    .logo-text h1 { font-size: 20px; font-weight: 700; line-height: 1.2; }
+    .logo-text p  { font-size: 13px; color: var(--ink-soft); }
+
+    .spacer { flex: 1; }
+
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 12px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      font-size: 12px; font-weight: 600; color: var(--ink-soft);
+    }
+    .status-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: rgba(100,116,139,0.4);
+    }
+    .status-dot.online  { background: var(--success); }
+    .status-dot.offline { background: var(--error); }
+
+    .btn-outline {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--paper);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 600; color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-outline:hover { background: var(--bg); }
+    .btn-outline svg { width: 18px; height: 18px; }
+
+    /* ── Main content ── */
+    main {
+      position: relative; z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 8px 24px 40px;
+    }
+
+    /* ── DmCard ── */
+    .card {
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 10px 24px rgba(30,41,59,0.04);
+      width: 100%;
+    }
+
+    /* ── Upload card ── */
+    .upload-title {
+      font-size: 24px; font-weight: 700; color: var(--ink);
       margin-bottom: 8px;
-      letter-spacing: 1px;
     }
-    #loading p {
-      font-size: 0.9rem;
-      opacity: 0.6;
+    .upload-subtitle {
+      font-size: 16px; color: var(--ink-soft); line-height: 1.5;
+      margin-bottom: 24px;
+    }
+
+    /* Drop zone */
+    .drop-zone {
+      width: 100%;
+      padding: 42px 24px;
+      border: 1.4px dashed var(--line);
+      border-radius: 18px;
+      background: var(--bg);
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s;
+    }
+    .drop-zone:hover {
+      background: rgba(232,237,255,0.55);
+      border-color: var(--indigo);
+      border-width: 1.8px;
+    }
+    .drop-icon-wrap {
+      width: 64px; height: 64px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 18px;
+      transition: transform 0.18s;
+    }
+    .drop-zone:hover .drop-icon-wrap { transform: scale(1.08); }
+    .drop-icon-wrap svg { width: 30px; height: 30px; fill: var(--indigo); }
+    .drop-title { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .drop-sub   { font-size: 14px; color: var(--ink-soft); margin-bottom: 14px; }
+    .drop-hint  { font-size: 13px; color: var(--ink-soft); }
+
+    /* Action buttons */
+    .btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+
+    .btn-filled {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 20px;
+      background: var(--indigo);
+      color: white;
+      border: none; border-radius: 12px;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-filled:hover { background: var(--indigo-deep); }
+    .btn-filled:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-filled svg { width: 18px; height: 18px; fill: white; }
+
+    .btn-cancel {
+      padding: 14px 18px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: transparent;
+      font-family: 'Inter', sans-serif;
+      font-size: 14px; font-weight: 600; color: var(--ink);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-cancel:hover { background: var(--bg); }
+    .btn-cancel:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Recent docs section ── */
+    .section-header {
+      display: flex; align-items: center;
+      margin: 28px 0 14px;
+    }
+    .section-title {
+      font-size: 20px; font-weight: 700; color: var(--ink);
+    }
+
+    /* Empty state */
+    .empty-card {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 40px 24px; text-align: center;
+    }
+    .empty-card svg { width: 40px; height: 40px; fill: var(--indigo); margin-bottom: 12px; }
+    .empty-card h3 { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .empty-card p  { font-size: 14px; color: var(--ink-soft); }
+
+    /* Loading spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid var(--line);
+      border-top-color: var(--indigo);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Flutter bootstrap overlay */
+    #flutter-loading {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(180deg, #F8FAFF 0%, var(--bg) 55%, #F3F0FF 100%);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.4s;
+    }
+    #flutter-loading.hidden { opacity: 0; pointer-events: none; }
+    .fl-inner { text-align: center; }
+    .fl-inner h2 { font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .fl-inner p  { font-size: 14px; color: var(--ink-soft); }
+    .fl-spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--indigo-soft);
+      border-top-color: var(--indigo);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
     }
   </style>
 </head>
 <body>
-  <div id="loading">
-    <h2>DocuMind</h2>
-    <p>Loading...</p>
+
+  <!-- Flutter loading overlay (hidden once Flutter mounts) -->
+  <div id="flutter-loading">
+    <div class="fl-inner">
+      <div class="fl-spinner"></div>
+      <h2>DocuMind</h2>
+      <p>Loading application…</p>
+    </div>
   </div>
+
+  <!-- Static preview (visible before Flutter boots) -->
+  <div id="static-ui">
+    <header>
+      <div class="header-inner">
+        <a class="logo-btn" href="#">
+          <div class="logo-icon">
+            <!-- auto_awesome icon -->
+            <svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2zm6 12l.75 2.25L21 17l-2.25.75L18 20l-.75-2.25L15 17l2.25-.75L18 14zM5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5L5 17z"/></svg>
+          </div>
+          <div class="logo-text">
+            <h1>DocuMind</h1>
+            <p>AI-powered Document Q&amp;A</p>
+          </div>
+        </a>
+
+        <div class="spacer"></div>
+
+        <div class="status-pill">
+          <div class="status-dot" id="status-dot"></div>
+          <span id="status-label">Checking…</span>
+        </div>
+
+        <button class="btn-outline" onclick="alert('Upload via the Flutter app.')">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          New document
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <!-- Upload card -->
+      <div class="card">
+        <p class="upload-title">Upload your document</p>
+        <p class="upload-subtitle">Upload a document and ask questions about its content using AI.</p>
+
+        <div class="drop-zone" onclick="alert('Please open the full app to upload documents.')">
+          <div class="drop-icon-wrap">
+            <!-- upload_file icon -->
+            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 17.01l-2-2 1.41-1.41L8 14.17l4.59-4.58L14 11l-6 6.01z"/></svg>
+          </div>
+          <p class="drop-title">Drag &amp; drop your document here</p>
+          <p class="drop-sub">or click to browse files</p>
+          <p class="drop-hint">PDF, PNG, JPEG &nbsp;·&nbsp; Maximum size: 50 MB</p>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn-filled" disabled>
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+            Upload &amp; Process
+          </button>
+          <button class="btn-cancel" disabled>Cancel</button>
+        </div>
+      </div>
+
+      <!-- Recent documents -->
+      <div class="section-header">
+        <span class="section-title">Recent documents</span>
+      </div>
+
+      <div class="card">
+        <div class="empty-card">
+          <!-- description_outlined icon -->
+          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8zm0-4h5v2H8z"/></svg>
+          <h3>Your document is waiting</h3>
+          <p>Upload a document to start asking questions.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Hide static UI and loading overlay once Flutter is ready
+    window.addEventListener('flutter-first-frame', function () {
+      var loading = document.getElementById('flutter-loading');
+      var staticUi = document.getElementById('static-ui');
+      if (loading)   { loading.classList.add('hidden'); setTimeout(function(){ loading.remove(); }, 500); }
+      if (staticUi)  { staticUi.style.display = 'none'; }
+    });
+
+    // Simple health check indicator
+    fetch('http://172.16.16.111:8080/api/health')
+      .then(function(r) {
+        var dot   = document.getElementById('status-dot');
+        var label = document.getElementById('status-label');
+        if (r.ok) {
+          dot.className   = 'status-dot online';
+          label.textContent = 'AI Online';
+        } else {
+          dot.className   = 'status-dot offline';
+          label.textContent = 'AI Offline';
+        }
+      })
+      .catch(function() {
+        var dot   = document.getElementById('status-dot');
+        var label = document.getElementById('status-label');
+        dot.className   = 'status-dot offline';
+        label.textContent = 'AI Offline';
+      });
+  </script>
 </body>
 </html>
