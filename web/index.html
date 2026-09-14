@@ -13,55 +13,61 @@
   <title>DocuMind — RAG Document Q&A</title>
   <link rel="manifest" href="manifest.json">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --indigo:       #3B5BDB;
-      --indigo-deep:  #2F4AC0;
-      --indigo-soft:  #E8EDFF;
-      --purple:       #7C5CFC;
-      --bg:           #F5F7FB;
-      --bg-blue:      #EEF2FF;
-      --paper:        #FFFFFF;
-      --ink:          #1E293B;
-      --ink-soft:     #64748B;
-      --line:         #E2E8F0;
-      --success:      #16A34A;
-      --error:        #DC2626;
+      --indigo:      #3B5BDB;
+      --indigo-deep: #2F4AC0;
+      --indigo-soft: #E8EDFF;
+      --purple:      #7C5CFC;
+      --bg:          #F5F7FB;
+      --bg-blue:     #EEF2FF;
+      --paper:       #FFFFFF;
+      --ink:         #1E293B;
+      --ink-soft:    #64748B;
+      --line:        #E2E8F0;
+      --success:     #16A34A;
+      --success-soft:#DCFCE7;
+      --error:       #DC2626;
+      --error-soft:  #FEE2E2;
+      --amber:       #D97706;
+      --amber-soft:  #FEF3C7;
     }
+
+    html, body { height: 100%; }
 
     body {
       font-family: 'Inter', sans-serif;
-      background: linear-gradient(180deg, #F8FAFF 0%, var(--bg) 55%, #F3F0FF 100%);
       min-height: 100vh;
       color: var(--ink);
+      background: linear-gradient(180deg, #F8FAFF 0%, var(--bg) 55%, #F3F0FF 100%);
       position: relative;
       overflow-x: hidden;
     }
 
-    /* Atmosphere blobs */
-    body::before, body::after {
-      content: '';
+    /* atmosphere blobs */
+    .blob {
       position: fixed;
       border-radius: 50%;
       pointer-events: none;
       z-index: 0;
     }
-    body::before {
-      width: 280px; height: 280px;
-      top: -120px; right: -60px;
-      background: rgba(59,91,219,0.08);
-    }
-    body::after {
-      width: 300px; height: 300px;
-      bottom: -100px; left: -80px;
-      background: rgba(124,92,252,0.07);
+    .blob-tr { width:280px; height:280px; top:-120px; right:-60px; background:rgba(59,91,219,.08); }
+    .blob-bl { width:300px; height:300px; bottom:-100px; left:-80px; background:rgba(124,92,252,.07); }
+
+    /* ── scaffold ── */
+    #app {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
     }
 
-    /* ── Header ── */
+    /* ── header ── */
     header {
-      position: relative; z-index: 10;
       padding: 14px 20px 10px;
     }
     .header-inner {
@@ -71,25 +77,33 @@
       align-items: center;
       gap: 12px;
     }
-    .logo-btn {
+    .logo-link {
       display: flex; align-items: center; gap: 12px;
       text-decoration: none; color: inherit;
       border-radius: 12px;
-      padding: 4px;
+      padding: 4px 6px 4px 4px;
+      transition: background .15s;
     }
+    .logo-link:hover { background: rgba(59,91,219,.06); }
+
     .logo-icon {
-      width: 40px; height: 40px;
+      width: 40px; height: 40px; flex-shrink: 0;
       border-radius: 12px;
-      background: linear-gradient(135deg, var(--indigo), var(--purple));
+      background: linear-gradient(135deg, var(--indigo) 0%, var(--purple) 100%);
       display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
     }
-    .logo-icon svg { width: 20px; height: 20px; fill: white; }
-    .logo-text h1 { font-size: 20px; font-weight: 700; line-height: 1.2; }
-    .logo-text p  { font-size: 13px; color: var(--ink-soft); }
+    .logo-icon svg { width:20px; height:20px; fill:#fff; }
+
+    .logo-name {
+      font-size: 20px; font-weight: 700; line-height: 1.2; color: var(--ink);
+    }
+    .logo-sub {
+      font-size: 13px; color: var(--ink-soft); line-height: 1.3;
+    }
 
     .spacer { flex: 1; }
 
+    /* status pill */
     .status-pill {
       display: flex; align-items: center; gap: 8px;
       padding: 8px 12px;
@@ -97,33 +111,36 @@
       border: 1px solid var(--line);
       border-radius: 999px;
       font-size: 12px; font-weight: 600; color: var(--ink-soft);
+      white-space: nowrap;
     }
-    .status-dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      background: rgba(100,116,139,0.4);
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(100,116,139,.35);
     }
-    .status-dot.online  { background: var(--success); }
-    .status-dot.offline { background: var(--error); }
+    .dot.online  { background: var(--success); }
+    .dot.offline { background: var(--error); }
 
-    .btn-outline {
+    /* new-doc button */
+    .btn-new {
       display: flex; align-items: center; gap: 6px;
       padding: 10px 18px;
+      background: var(--paper);
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: var(--paper);
       font-family: 'Inter', sans-serif;
       font-size: 14px; font-weight: 600; color: var(--ink);
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background .15s;
+      white-space: nowrap;
     }
-    .btn-outline:hover { background: var(--bg); }
-    .btn-outline svg { width: 18px; height: 18px; }
+    .btn-new:hover { background: var(--bg); }
+    .btn-new svg { width:18px; height:18px; fill:var(--ink); }
 
-    /* ── Main content ── */
+    /* ── main ── */
     main {
-      position: relative; z-index: 1;
+      flex: 1;
       max-width: 1120px;
+      width: 100%;
       margin: 0 auto;
       padding: 8px 24px 40px;
     }
@@ -134,21 +151,21 @@
       border: 1px solid var(--line);
       border-radius: 18px;
       padding: 24px;
-      box-shadow: 0 10px 24px rgba(30,41,59,0.04);
+      box-shadow: 0 10px 24px rgba(30,41,59,.04);
       width: 100%;
     }
 
-    /* ── Upload card ── */
+    /* ── upload card ── */
     .upload-title {
       font-size: 24px; font-weight: 700; color: var(--ink);
       margin-bottom: 8px;
     }
-    .upload-subtitle {
+    .upload-sub {
       font-size: 16px; color: var(--ink-soft); line-height: 1.5;
       margin-bottom: 24px;
     }
 
-    /* Drop zone */
+    /* drop zone */
     .drop-zone {
       width: 100%;
       padding: 42px 24px;
@@ -157,61 +174,67 @@
       background: var(--bg);
       display: flex; flex-direction: column; align-items: center;
       cursor: pointer;
-      transition: background 0.18s, border-color 0.18s;
+      transition: background .18s, border-color .18s, border-width .18s;
+      user-select: none;
     }
     .drop-zone:hover {
-      background: rgba(232,237,255,0.55);
+      background: rgba(232,237,255,.55);
       border-color: var(--indigo);
       border-width: 1.8px;
     }
-    .drop-icon-wrap {
+    .drop-zone:hover .drop-icon-box { transform: scale(1.08); }
+
+    .drop-icon-box {
       width: 64px; height: 64px;
       background: var(--paper);
       border: 1px solid var(--line);
       border-radius: 18px;
       display: flex; align-items: center; justify-content: center;
       margin-bottom: 18px;
-      transition: transform 0.18s;
+      transition: transform .18s;
     }
-    .drop-zone:hover .drop-icon-wrap { transform: scale(1.08); }
-    .drop-icon-wrap svg { width: 30px; height: 30px; fill: var(--indigo); }
-    .drop-title { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
-    .drop-sub   { font-size: 14px; color: var(--ink-soft); margin-bottom: 14px; }
-    .drop-hint  { font-size: 13px; color: var(--ink-soft); }
+    .drop-icon-box svg { width:30px; height:30px; fill:var(--indigo); }
 
-    /* Action buttons */
-    .btn-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+    .drop-title { font-size:16px; font-weight:600; color:var(--ink); margin-bottom:6px; }
+    .drop-sub2  { font-size:14px; color:var(--ink-soft); margin-bottom:14px; }
+    .drop-hint  { font-size:13px; color:var(--ink-soft); }
+
+    /* action row */
+    .btn-row { display:flex; flex-wrap:wrap; gap:12px; margin-top:20px; }
 
     .btn-filled {
       display: flex; align-items: center; gap: 8px;
       padding: 14px 20px;
       background: var(--indigo);
-      color: white;
+      color: #fff;
       border: none; border-radius: 12px;
       font-family: 'Inter', sans-serif;
       font-size: 14px; font-weight: 700;
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background .15s;
+      min-height: 48px;
     }
-    .btn-filled:hover { background: var(--indigo-deep); }
-    .btn-filled:disabled { opacity: 0.45; cursor: not-allowed; }
-    .btn-filled svg { width: 18px; height: 18px; fill: white; }
+    .btn-filled:hover:not(:disabled) { background: var(--indigo-deep); }
+    .btn-filled:disabled { opacity: .45; cursor: not-allowed; }
+    .btn-filled svg { width:18px; height:18px; fill:#fff; }
 
-    .btn-cancel {
+    .btn-outlined {
+      display: flex; align-items: center; gap: 8px;
       padding: 14px 18px;
+      background: transparent;
       border: 1px solid var(--line);
       border-radius: 12px;
-      background: transparent;
       font-family: 'Inter', sans-serif;
       font-size: 14px; font-weight: 600; color: var(--ink);
       cursor: pointer;
-      transition: background 0.15s;
+      transition: background .15s;
+      min-height: 48px;
     }
-    .btn-cancel:hover { background: var(--bg); }
-    .btn-cancel:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-outlined:hover:not(:disabled) { background: var(--bg); }
+    .btn-outlined:disabled { opacity: .45; cursor: not-allowed; }
 
-    /* ── Recent docs section ── */
-    .section-header {
+    /* ── section header ── */
+    .section-row {
       display: flex; align-items: center;
       margin: 28px 0 14px;
     }
@@ -219,156 +242,331 @@
       font-size: 20px; font-weight: 700; color: var(--ink);
     }
 
-    /* Empty state */
-    .empty-card {
+    /* ── empty state ── */
+    .empty-body {
       display: flex; flex-direction: column; align-items: center;
-      padding: 40px 24px; text-align: center;
+      padding: 16px 0 8px;
+      text-align: center;
     }
-    .empty-card svg { width: 40px; height: 40px; fill: var(--indigo); margin-bottom: 12px; }
-    .empty-card h3 { font-size: 16px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
-    .empty-card p  { font-size: 14px; color: var(--ink-soft); }
-
-    /* Loading spinner */
-    .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid var(--line);
-      border-top-color: var(--indigo);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    /* Flutter bootstrap overlay */
-    #flutter-loading {
-      position: fixed; inset: 0; z-index: 9999;
-      background: linear-gradient(180deg, #F8FAFF 0%, var(--bg) 55%, #F3F0FF 100%);
+    .empty-icon-wrap {
+      width: 64px; height: 64px;
+      background: var(--indigo-soft);
+      border-radius: 18px;
       display: flex; align-items: center; justify-content: center;
-      transition: opacity 0.4s;
+      margin-bottom: 12px;
     }
-    #flutter-loading.hidden { opacity: 0; pointer-events: none; }
-    .fl-inner { text-align: center; }
-    .fl-inner h2 { font-size: 22px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
-    .fl-inner p  { font-size: 14px; color: var(--ink-soft); }
-    .fl-spinner {
-      width: 36px; height: 36px;
+    .empty-icon-wrap svg { width:32px; height:32px; fill:var(--indigo); }
+    .empty-title { font-size:16px; font-weight:600; color:var(--ink); margin-bottom:6px; }
+    .empty-sub   { font-size:14px; color:var(--ink-soft); }
+
+    /* ── modal overlay ── */
+    .overlay {
+      display: none;
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(0,0,0,.45);
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .overlay.open { display: flex; }
+
+    /* bottom sheet */
+    .sheet {
+      background: var(--paper);
+      border-radius: 24px 24px 0 0;
+      padding: 16px 28px 28px;
+      width: 100%; max-width: 560px;
+      animation: slideUp .25s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to   { transform: translateY(0); }
+    }
+    .sheet-handle {
+      width: 42px; height: 4px;
+      background: var(--line);
+      border-radius: 99px;
+      margin: 0 auto 18px;
+    }
+    .sheet-title { font-size:22px; font-weight:600; color:var(--ink); margin-bottom:6px; }
+    .sheet-sub   { font-size:14px; color:var(--ink-soft); margin-bottom:22px; }
+
+    /* file pick area inside sheet */
+    .file-pick {
+      width: 100%;
+      padding: 28px 20px;
+      border: 1.4px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(135deg, var(--bg) 0%, rgba(232,237,255,.35) 100%);
+      display: flex; flex-direction: column; align-items: center;
+      cursor: pointer;
+      transition: border-color .18s;
+      margin-bottom: 22px;
+    }
+    .file-pick:hover { border-color: rgba(59,91,219,.55); }
+    .file-pick svg { width:36px; height:36px; fill:var(--indigo); margin-bottom:12px; }
+    .file-pick-label { font-size:16px; font-weight:600; color:var(--ink); }
+    .file-pick-size  { font-size:13px; color:var(--ink-soft); margin-top:6px; }
+
+    .sheet-btn-row { display:flex; gap:12px; }
+    .sheet-btn-row .btn-outlined,
+    .sheet-btn-row .btn-filled { flex:1; justify-content:center; }
+
+    /* spinner */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width:16px; height:16px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+
+    /* flutter loading overlay */
+    #fl-loading {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(180deg,#F8FAFF 0%,var(--bg) 55%,#F3F0FF 100%);
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity .4s;
+    }
+    #fl-loading.gone { opacity:0; pointer-events:none; }
+    .fl-center { text-align:center; }
+    .fl-spin {
+      width:36px; height:36px;
       border: 3px solid var(--indigo-soft);
       border-top-color: var(--indigo);
       border-radius: 50%;
-      animation: spin 0.8s linear infinite;
+      animation: spin .8s linear infinite;
       margin: 0 auto 16px;
     }
+    .fl-center h2 { font-size:22px; font-weight:700; color:var(--ink); margin-bottom:6px; }
+    .fl-center p  { font-size:14px; color:var(--ink-soft); }
   </style>
 </head>
 <body>
 
-  <!-- Flutter loading overlay (hidden once Flutter mounts) -->
-  <div id="flutter-loading">
-    <div class="fl-inner">
-      <div class="fl-spinner"></div>
+  <!-- Flutter loading splash -->
+  <div id="fl-loading">
+    <div class="fl-center">
+      <div class="fl-spin"></div>
       <h2>DocuMind</h2>
       <p>Loading application…</p>
     </div>
   </div>
 
-  <!-- Static preview (visible before Flutter boots) -->
-  <div id="static-ui">
+  <!-- atmosphere blobs -->
+  <div class="blob blob-tr"></div>
+  <div class="blob blob-bl"></div>
+
+  <!-- ═══════════════════════════════════════════
+       APP SHELL
+  ════════════════════════════════════════════ -->
+  <div id="app">
+
+    <!-- HEADER -->
     <header>
       <div class="header-inner">
-        <a class="logo-btn" href="#">
+
+        <a class="logo-link" href="#">
           <div class="logo-icon">
-            <!-- auto_awesome icon -->
-            <svg viewBox="0 0 24 24"><path d="M12 2l1.5 4.5L18 8l-4.5 1.5L12 14l-1.5-4.5L6 8l4.5-1.5L12 2zm6 12l.75 2.25L21 17l-2.25.75L18 20l-.75-2.25L15 17l2.25-.75L18 14zM5 17l.5 1.5L7 19l-1.5.5L5 21l-.5-1.5L3 19l1.5-.5L5 17z"/></svg>
+            <!-- auto_awesome_rounded -->
+            <svg viewBox="0 0 24 24">
+              <path d="M12 2l1.09 3.41L17 6.5l-3.91 1.09L12 11l-1.09-3.41L7 6.5l3.91-1.09L12 2zm6.5 11l.68 2.07L21.5 16l-2.32.93L18.5 19l-.68-2.07L15.5 16l2.32-.93L18.5 13zM5.5 15l.5 1.5L7.5 17l-1.5.5L5.5 19l-.5-1.5L3.5 17l1.5-.5L5.5 15z"/>
+            </svg>
           </div>
-          <div class="logo-text">
-            <h1>DocuMind</h1>
-            <p>AI-powered Document Q&amp;A</p>
+          <div>
+            <div class="logo-name">DocuMind</div>
+            <div class="logo-sub">AI-powered Document Q&amp;A</div>
           </div>
         </a>
 
         <div class="spacer"></div>
 
         <div class="status-pill">
-          <div class="status-dot" id="status-dot"></div>
-          <span id="status-label">Checking…</span>
+          <div class="dot" id="health-dot"></div>
+          <span id="health-label">Checking…</span>
         </div>
 
-        <button class="btn-outline" onclick="alert('Upload via the Flutter app.')">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        <button class="btn-new" onclick="openSheet()">
+          <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           New document
         </button>
+
       </div>
     </header>
 
+    <!-- MAIN CONTENT -->
     <main>
+
       <!-- Upload card -->
       <div class="card">
         <p class="upload-title">Upload your document</p>
-        <p class="upload-subtitle">Upload a document and ask questions about its content using AI.</p>
+        <p class="upload-sub">Upload a document and ask questions about its content using AI.</p>
 
-        <div class="drop-zone" onclick="alert('Please open the full app to upload documents.')">
-          <div class="drop-icon-wrap">
-            <!-- upload_file icon -->
-            <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 7V3.5L18.5 9H13zM8 17.01l-2-2 1.41-1.41L8 14.17l4.59-4.58L14 11l-6 6.01z"/></svg>
+        <!-- Drop zone -->
+        <div class="drop-zone" onclick="openSheet()">
+          <div class="drop-icon-box">
+            <!-- upload_file_rounded -->
+            <svg viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 1.5L19.5 9H14V3.5zM16 13h-3v3h-2v-3H8l4-4 4 4z"/>
+            </svg>
           </div>
           <p class="drop-title">Drag &amp; drop your document here</p>
-          <p class="drop-sub">or click to browse files</p>
+          <p class="drop-sub2">or click to browse files</p>
           <p class="drop-hint">PDF, PNG, JPEG &nbsp;·&nbsp; Maximum size: 50 MB</p>
         </div>
 
+        <!-- Buttons -->
         <div class="btn-row">
-          <button class="btn-filled" disabled>
-            <svg viewBox="0 0 24 24"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <button class="btn-filled" id="upload-btn" disabled>
+            <!-- cloud_upload_rounded -->
+            <svg viewBox="0 0 24 24">
+              <path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+            </svg>
             Upload &amp; Process
           </button>
-          <button class="btn-cancel" disabled>Cancel</button>
+          <button class="btn-outlined" id="cancel-btn" disabled>Cancel</button>
         </div>
       </div>
 
-      <!-- Recent documents -->
-      <div class="section-header">
+      <!-- Recent documents section -->
+      <div class="section-row">
         <span class="section-title">Recent documents</span>
       </div>
 
+      <!-- Empty state card -->
       <div class="card">
-        <div class="empty-card">
-          <!-- description_outlined icon -->
-          <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8zm0-4h5v2H8z"/></svg>
-          <h3>Your document is waiting</h3>
-          <p>Upload a document to start asking questions.</p>
+        <div class="empty-body">
+          <div class="empty-icon-wrap">
+            <!-- description_outlined -->
+            <svg viewBox="0 0 24 24">
+              <path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm4 18H6V4h7v5h5v11zM8 15h8v2H8zm0-4h8v2H8zm0-4h5v2H8z"/>
+            </svg>
+          </div>
+          <p class="empty-title">Your document is waiting</p>
+          <p class="empty-sub">Upload a document to start asking questions.</p>
         </div>
       </div>
+
     </main>
+  </div><!-- /#app -->
+
+
+  <!-- ═══════════════════════════════════════════
+       UPLOAD BOTTOM SHEET MODAL
+  ════════════════════════════════════════════ -->
+  <div class="overlay" id="sheet-overlay" onclick="closeSheetOnBg(event)">
+    <div class="sheet" id="sheet">
+      <div class="sheet-handle"></div>
+      <p class="sheet-title">Upload document</p>
+      <p class="sheet-sub">PDF or image · max 50 MB · processed asynchronously</p>
+
+      <div class="file-pick" id="file-pick-area" onclick="pickFile()">
+        <!-- cloud_upload_rounded -->
+        <svg viewBox="0 0 24 24">
+          <path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>
+        </svg>
+        <span class="file-pick-label" id="file-pick-label">Click to choose a file</span>
+        <span class="file-pick-size"  id="file-pick-size"></span>
+      </div>
+
+      <input type="file" id="file-input" accept=".pdf,.png,.jpg,.jpeg" style="display:none" onchange="onFileChosen(event)">
+
+      <div class="sheet-btn-row">
+        <button class="btn-outlined" onclick="closeSheet()">Cancel</button>
+        <button class="btn-filled"   id="sheet-upload-btn" onclick="submitFile()">Upload</button>
+      </div>
+    </div>
   </div>
 
+
   <script src="flutter_bootstrap.js" async></script>
+
   <script>
-    // Hide static UI and loading overlay once Flutter is ready
+    // ── Hide static UI once Flutter mounts ──────────────────────────────────
     window.addEventListener('flutter-first-frame', function () {
-      var loading = document.getElementById('flutter-loading');
-      var staticUi = document.getElementById('static-ui');
-      if (loading)   { loading.classList.add('hidden'); setTimeout(function(){ loading.remove(); }, 500); }
-      if (staticUi)  { staticUi.style.display = 'none'; }
+      var fl = document.getElementById('fl-loading');
+      var app = document.getElementById('app');
+      var overlay = document.getElementById('sheet-overlay');
+      if (fl)      { fl.classList.add('gone'); setTimeout(function(){ fl.remove(); }, 500); }
+      if (app)     { app.style.display = 'none'; }
+      if (overlay) { overlay.remove(); }
     });
 
-    // Simple health check indicator
-    fetch('http://172.16.16.111:8080/api/health')
-      .then(function(r) {
-        var dot   = document.getElementById('status-dot');
-        var label = document.getElementById('status-label');
-        if (r.ok) {
-          dot.className   = 'status-dot online';
-          label.textContent = 'AI Online';
-        } else {
-          dot.className   = 'status-dot offline';
+    // ── Health check ────────────────────────────────────────────────────────
+    (function checkHealth() {
+      var dot   = document.getElementById('health-dot');
+      var label = document.getElementById('health-label');
+      fetch('/api/health', { signal: AbortSignal.timeout(5000) })
+        .then(function(r) {
+          if (r.ok) {
+            dot.className   = 'dot online';
+            label.textContent = 'AI Online';
+          } else { throw new Error(); }
+        })
+        .catch(function() {
+          dot.className   = 'dot offline';
           label.textContent = 'AI Offline';
-        }
-      })
-      .catch(function() {
-        var dot   = document.getElementById('status-dot');
-        var label = document.getElementById('status-label');
-        dot.className   = 'status-dot offline';
-        label.textContent = 'AI Offline';
-      });
+        });
+    })();
+
+    // ── Bottom sheet ────────────────────────────────────────────────────────
+    function openSheet() {
+      document.getElementById('sheet-overlay').classList.add('open');
+    }
+    function closeSheet() {
+      document.getElementById('sheet-overlay').classList.remove('open');
+      resetSheet();
+    }
+    function closeSheetOnBg(e) {
+      if (e.target === document.getElementById('sheet-overlay')) closeSheet();
+    }
+    function resetSheet() {
+      document.getElementById('file-input').value = '';
+      document.getElementById('file-pick-label').textContent = 'Click to choose a file';
+      document.getElementById('file-pick-size').textContent  = '';
+      var icon = document.querySelector('#file-pick-area svg');
+      icon.innerHTML = '<path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/>';
+      document.getElementById('file-pick-area').style.borderColor = '';
+    }
+
+    function pickFile() {
+      document.getElementById('file-input').click();
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024)           return bytes + ' B';
+      if (bytes < 1024 * 1024)    return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function onFileChosen(e) {
+      var file = e.target.files[0];
+      if (!file) return;
+      var label = document.getElementById('file-pick-label');
+      var size  = document.getElementById('file-pick-size');
+      var area  = document.getElementById('file-pick-area');
+      var icon  = area.querySelector('svg');
+      label.textContent = file.name;
+      size.textContent  = formatSize(file.size);
+      area.style.borderColor = 'rgba(59,91,219,.55)';
+      // swap to description icon
+      icon.innerHTML = '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm0 1.5L19.5 9H14V3.5zM8 17h8v2H8zm0-4h8v2H8zm0-4h5v2H8z"/>';
+    }
+
+    function submitFile() {
+      var file = document.getElementById('file-input').files[0];
+      if (!file) { alert('Please choose a file first.'); return; }
+      var btn = document.getElementById('sheet-upload-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner"></div>';
+      // Simulate — real upload handled by Flutter
+      setTimeout(function() {
+        btn.disabled = false;
+        btn.textContent = 'Upload';
+        alert('Please use the full Flutter app to upload and process documents.');
+        closeSheet();
+      }, 1200);
+    }
   </script>
 </body>
 </html>
